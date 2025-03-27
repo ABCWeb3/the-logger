@@ -7,7 +7,7 @@ const config = require("./config.json");
 
 const API_URL = "https://api-galaswap.gala.com/galachain/api";
 const LOG_DIR = "allowance_logs";
-const CHECK_INTERVAL = 60 * 1000; // Check every 60 seconds
+const CHECK_INTERVAL = 60 * 60 * 1000; // Check every hour 
 
 const WALLET_ADDRESSES = config.WALLET_ADDRESSES;
 const DISCORD_WEBHOOK_URL = config.DISCORD_WEBHOOK_URL;
@@ -32,7 +32,7 @@ async function sendDiscordEmbed(title, description, color = 3447003) {
                 description,
                 color,
                 timestamp: new Date().toISOString(),
-                footer: { text: "Gala Chain Balance Logger" },
+                footer: { text: "Gala Chain Allowance Logger" },
             },
         ],
     };
@@ -48,9 +48,9 @@ async function sendDiscordEmbed(title, description, color = 3447003) {
 }
 
 /**
- * Logs allowance changes to a CSV file.
+ * Logs only the daily reward increases.
  */
-function logAllowance(wallet, change) {
+function logDailyReward(wallet, reward) {
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const dateString = now.toISOString().split("T")[0];
@@ -62,9 +62,9 @@ function logAllowance(wallet, change) {
         fs.mkdirSync(walletDir, { recursive: true });
     }
 
-    const logEntry = `${dateString},${change}\n`;
+    const logEntry = `${dateString},+${reward}\n`;
     if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, "Date,Change\n" + logEntry);
+        fs.writeFileSync(filePath, "Date,Reward\n" + logEntry);
     } else {
         fs.appendFileSync(filePath, logEntry);
     }
@@ -112,19 +112,28 @@ async function checkAllowanceBalances() {
 
         if (previousAllowances[wallet] !== undefined && totalRemaining !== previousAllowances[wallet]) {
             const diff = totalRemaining - previousAllowances[wallet];
-            const changeText = diff > 0 ? `🟢 +${diff.toLocaleString()}` : `🔴 ${diff.toLocaleString()}`;
             const walletName = getWalletName(wallet);
 
-            await sendDiscordEmbed(
-                "📦 Allowance Updated",
-                `🔹 **Wallet:** \`${walletName}\`\n` +
-                `🔹 **Previous:** ${previousAllowances[wallet].toLocaleString()} GALA\n` +
-                `🔹 **New:** ${totalRemaining.toLocaleString()} GALA\n` +
-                `🔹 **Change:** ${changeText}`,
-                diff > 0 ? 0x2ecc71 : 0xe74c3c
-            );
-
-            logAllowance(wallet, diff);
+            if (diff > 0) {
+                await sendDiscordEmbed(
+                    "🎉 Daily Reward Received",
+                    `🔹 **Wallet:** \`${walletName}\`\n` +
+                    `🔹 **Previous:** ${previousAllowances[wallet].toLocaleString()} GALA\n` +
+                    `🔹 **New:** ${totalRemaining.toLocaleString()} GALA\n` +
+                    `🔹 **Reward:** 🟢 +${diff.toLocaleString()} GALA`,
+                    0x2ecc71
+                );
+                logDailyReward(wallet, diff);
+            } else {
+                await sendDiscordEmbed(
+                    "⚠️ Token Mint Detected",
+                    `🔹 **Wallet:** \`${walletName}\`\n` +
+                    `🔹 **Previous:** ${previousAllowances[wallet].toLocaleString()} GALA\n` +
+                    `🔹 **New:** ${totalRemaining.toLocaleString()} GALA\n` +
+                    `🔹 **Mint:** 🔴 ${diff.toLocaleString()} GALA`,
+                    0xe74c3c
+                );
+            }
         }
         previousAllowances[wallet] = totalRemaining;
     }
