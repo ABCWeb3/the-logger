@@ -1,0 +1,16 @@
+{
+  "name": "the-logger",
+  "version": "1.0.0",
+  "description": "A GalaChain logging bot that records allowances, storing data and sending notifications to Discord.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
+  },
+  "author": "ABC",
+  "license": "MIT"
+}
