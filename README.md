@@ -20,7 +20,7 @@
 sudo apt update
 sudo apt upgrade
 sudo apt install curl
-git clone https://github.com/your-repo/the-logger.git
+git clone https://github.com/ABCGala/the-logger.git
 cd the-logger
 ```
 
