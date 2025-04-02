@@ -118,13 +118,6 @@ Date,Amount,Total Monthly
 
 ---
 
-## 🛠 Future Enhancements
-- 🌐 Web dashboard for real-time visualization.
-- 📈 Advanced analytics on allowance usage.
-- 🔄 Multi-currency support.
-
----
-
 ## 👨‍💻 Developed by
 **ABC**
 
