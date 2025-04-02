@@ -1,3 +1,4 @@
+
 # The Logger
 
 🚀 **The Logger** is a powerful GalaChain monitoring bot that tracks token allowances and logs balance changes. It sends real-time notifications to Discord and keeps organized logs for easy tracking.
@@ -51,6 +52,54 @@ npm start
 
 ---
 
+## 🔄 Running Continuously with pm2
+
+To ensure **The Logger** runs continuously, use **pm2**, a process manager for Node.js. Here’s how you can set it up:
+
+### 1️⃣ Install pm2
+If you don't have **pm2** installed, you can install it using npm:
+```sh
+sudo npm install pm2 -g
+```
+
+### 2️⃣ Run the Bot with pm2
+To run **The Logger** continuously with **pm2**, follow these steps:
+
+```sh
+pm2 start npm --name "the-logger" -- start
+```
+
+### 3️⃣ Save pm2 Process List
+To save your pm2 process list and ensure the bot runs after a system restart, use the following command:
+
+```sh
+pm2 save
+```
+
+### 4️⃣ Restart pm2 After System Reboot
+After rebooting your system, you can restore the pm2 processes by running:
+
+```sh
+pm2 resurrect
+```
+
+### 5️⃣ Managing pm2 Processes
+You can manage the pm2 processes with these commands:
+- To list running processes:
+  ```sh
+  pm2 list
+  ```
+- To stop the bot:
+  ```sh
+  pm2 stop "the-logger"
+  ```
+- To restart the bot:
+  ```sh
+  pm2 restart "the-logger"
+  ```
+
+---
+
 ## 🔍 How It Works
 1. The bot fetches token allowances from the GalaChain API.
 2. It compares the current balance with the previous one.
@@ -89,4 +138,3 @@ If you find **The Logger** useful, consider donating to support future developme
 
 ## 📜 License
 This project is licensed under the **MIT License**.
-

@@ -14,16 +14,10 @@ const DISCORD_WEBHOOK_URL = config.DISCORD_WEBHOOK_URL;
 
 let previousAllowances = {};
 
-/**
- * Gets the display name of a wallet, falls back to the address if not found.
- */
 function getWalletName(address) {
     return WALLET_ADDRESSES[address] || address;
 }
 
-/**
- * Sends an alert to Discord with an embedded message.
- */
 async function sendDiscordEmbed(title, description, color = 3447003) {
     const embed = {
         embeds: [
@@ -47,9 +41,6 @@ async function sendDiscordEmbed(title, description, color = 3447003) {
     }
 }
 
-/**
- * Logs only the daily reward increases.
- */
 function logDailyReward(wallet, reward) {
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -70,9 +61,36 @@ function logDailyReward(wallet, reward) {
     }
 }
 
-/**
- * Fetches the correct allowance balance from the API.
- */
+async function sendMonthlyCSV(wallet) {
+    const now = new Date();
+    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const walletName = getWalletName(wallet);
+    const walletDir = path.join(LOG_DIR, walletName.replace(/\s+/g, "_"));
+    const filePath = path.join(walletDir, `${yearMonth}.csv`);
+
+    if (!fs.existsSync(filePath)) return;
+
+    const fileContent = fs.readFileSync(filePath, "utf8");
+    const lines = fileContent.split("\n").slice(1).filter(line => line);
+    const totalReward = lines.reduce((sum, line) => sum + parseFloat(line.split(",")[1]), 0);
+    
+    fs.appendFileSync(filePath, `Total,${totalReward}\n`);
+
+    const fileData = fs.readFileSync(filePath);
+    const fileBuffer = Buffer.from(fileData);
+    const formData = new FormData();
+    formData.append("file", fileBuffer, `${yearMonth}.csv`);
+
+    try {
+        await axios.post(DISCORD_WEBHOOK_URL, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+        console.log(`✅ Monthly CSV sent for ${walletName}`);
+    } catch (error) {
+        console.error("❌ Failed to send CSV file:", error.message);
+    }
+}
+
 async function getCorrectAllowanceBalance(wallet) {
     try {
         const response = await axios.post(`${API_URL}/asset/token-contract/FetchAllowances`, {
@@ -102,10 +120,10 @@ async function getCorrectAllowanceBalance(wallet) {
     }
 }
 
-/**
- * Checks for allowance changes and sends notifications.
- */
 async function checkAllowanceBalances() {
+    const now = new Date();
+    const isMonthEnd = now.getDate() === new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    
     for (const wallet of Object.keys(WALLET_ADDRESSES)) {
         const totalRemaining = await getCorrectAllowanceBalance(wallet);
         if (totalRemaining === null) continue;
@@ -124,28 +142,20 @@ async function checkAllowanceBalances() {
                     0x2ecc71
                 );
                 logDailyReward(wallet, diff);
-            } else {
-                await sendDiscordEmbed(
-                    "⚠️ Token Mint Detected",
-                    `🔹 **Wallet:** \`${walletName}\`\n` +
-                    `🔹 **Previous:** ${previousAllowances[wallet].toLocaleString()} GALA\n` +
-                    `🔹 **New:** ${totalRemaining.toLocaleString()} GALA\n` +
-                    `🔹 **Mint:** 🔴 ${diff.toLocaleString()} GALA`,
-                    0xe74c3c
-                );
             }
         }
         previousAllowances[wallet] = totalRemaining;
+
+        if (isMonthEnd) {
+            await sendMonthlyCSV(wallet);
+        }
     }
 }
 
-/**
- * Starts the bot and runs the allowance checks periodically.
- */
 async function main() {
     console.log("✅ The Logger has started!");
 
-    await checkAllowanceBalances(); // Initial check on startup
+    await checkAllowanceBalances();
 
     setInterval(async () => {
         console.log("🔄 Checking Allowances...");
