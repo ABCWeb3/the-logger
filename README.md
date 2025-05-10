@@ -21,7 +21,7 @@
 sudo apt update
 sudo apt upgrade
 sudo apt install curl
-git clone https://github.com/ABCGala/the-logger.git
+git clone https://github.com/ABCWeb3/the-logger
 cd the-logger
 ```
 
